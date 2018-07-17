@@ -1,0 +1,8 @@
+{
+    "baseUrl": "http://localhost:8008",
+    "adminToken": "YOUR TOKEN OR A TOKEN WITH RIGHTS TO THE GROUP",
+    "regPath": "./matrix-appservice-irc/irc_registration.yaml",
+    "dataPath": "./matrix-appservice-irc/data/users.db",
+    "suffix": "(IRC)",
+    "dryRun": false
+}

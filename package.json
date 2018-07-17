@@ -1,0 +1,27 @@
+{
+  "name": "matrix-groupifyas",
+  "version": "0.0.1",
+  "description": "Group any appservice users and remove their suffixes.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Half-Shot/matrix-groupifyas.git"
+  },
+  "author": "Will Hunt <will@half-shot.uk>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Half-Shot/matrix-groupifyas/issues"
+  },
+  "homepage": "https://github.com/Half-Shot/matrix-groupifyas#readme",
+  "dependencies": {
+    "bluebird": "^3.5.1",
+    "command-line-args": "^5.0.2",
+    "js-yaml": "^3.12.0",
+    "matrix-js-sdk": "^0.10.5",
+    "nedb": "^1.8.0",
+    "request": "^2.87.0"
+  }
+}
