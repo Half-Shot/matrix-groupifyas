@@ -4,5 +4,6 @@
     "regPath": "./matrix-appservice-irc/irc_registration.yaml",
     "dataPath": "./matrix-appservice-irc/data/users.db",
     "suffix": "(IRC)",
-    "dryRun": false
+    "dryRun": false,
+    "addToGroup": true,
 }

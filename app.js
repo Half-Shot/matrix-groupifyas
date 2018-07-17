@@ -22,6 +22,7 @@ class GroupifyAS {
         this.regPath = cfg.regPath;
         this.dataPath = cfg.dataPath;
         this.dry = cfg.dryRun === true;
+        this.addToGroup = !(cfg.addToGroup === false);
     }
 
     parseRegFile(path) {
@@ -92,8 +93,39 @@ class GroupifyAS {
         const user = await this.bridgeClient._http.authedRequest(undefined, "GET", "/account/whoami");
         console.log(`AsBot is ${user.user_id}`);
 
-        const groupPromise = await this.getMembersFromGroup(regFile.group_id);
+        this.loadDatabase();
+        try {
+            ircMembers = await this.getUsersFromAppservice(regFile.regex);
+            console.info(`Got ${ircMembers.length} appservice users from data file.`);
+        } catch (e) {
+            throw Error(`Failed to get users from irc database: ${e.message}`);
+        }
 
+        // Change displaynames
+        try {
+            console.info("Replacing suffixes");
+            let i = 0;
+            await Promise.all(ircMembers.map((user) => {
+                const name = this.getNewDisplayName(user);
+                if (name === user.data.displayName) {
+                    console.log(`Skipping as ${user.id} doesn't need updating.`);
+                    return Promise.resolve();
+                }
+
+                return Promise.delay(i*DELAY_FACTOR).then(() => {
+                    return this.removeSuffixFromUser(user, name);
+                });
+                i++;
+            }));
+        } catch (e) {
+            throw Error(`Failed to update displaynames for appservice members: ${e.message}`);
+        }
+
+        if (!this.addToGroup) {
+            console.log("Not adding users to groups");
+            return;
+        }
+        
         try {
             console.log(`Creating group ${regFile.group_id}`);
             /*await this.adminClient.createGroup({
@@ -106,18 +138,10 @@ class GroupifyAS {
                 }
             });*/
             console.log(`Getting list of users from ${regFile.group_id}`);
-            groupMembers = await groupPromise;
+            groupMembers = await this.getMembersFromGroup(regFile.group_id);
             console.info(`Got ${groupMembers.size} group members for ${regFile.group_id}`);
         } catch (e) {
             throw Error(`Failed to get group: ${e.errcode} ${e.message}`);
-        }
-
-        this.loadDatabase();
-        try {
-            ircMembers = await this.getUsersFromAppservice(regFile.regex);
-            console.info(`Got ${ircMembers.length} appservice users from data file.`);
-        } catch (e) {
-            throw Error(`Failed to get users from irc database: ${e.message}`);
         }
 
         // Add to group
@@ -147,26 +171,6 @@ class GroupifyAS {
                 console.error(`Failed to add ${user.id} to group`, e);
             });
         }));
-
-        // Change displaynames
-        try {
-            console.info("Replacing suffixes");
-            let i = 0;
-            await Promise.all(ircMembers.map((user) => {
-                const name = this.getNewDisplayName(user);
-                if (name === user.data.displayName) {
-                    console.log(`Skipping as ${user.id} doesn't need updating.`);
-                    return Promise.resolve();
-                }
-
-                return Promise.delay(i*DELAY_FACTOR).then(() => {
-                    return this.removeSuffixFromUser(user, name);
-                });
-                i++;
-            }));
-        } catch (e) {
-            throw Error(`Failed to update displaynames for appservice members: ${e.message}`);
-        }
     }
 
     async getMembersFromGroup(groupId) {
@@ -213,7 +217,9 @@ class GroupifyAS {
     }
 }
 
-new GroupifyAS().run().catch((e) => {
+new GroupifyAS().run()
+
+.catch((e) => {
     console.error("Script failed to complete successfully:", e);
     process.exit(1);
 });
