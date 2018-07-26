@@ -49,7 +49,7 @@ class GroupifyAS {
     loadDatabase() {
         this.userDb = new Datastore({filename: this.userDataPath});
         this.userDb.loadDatabase();
-        this.roomDb = new Datastore({filename: this.roomDataPath, inMemoryOnly: true});
+        this.roomDb = new Datastore({filename: this.roomDataPath});
         this.roomDb.loadDatabase();
     }
 
