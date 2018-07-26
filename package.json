@@ -19,6 +19,7 @@
   "dependencies": {
     "bluebird": "^3.5.1",
     "command-line-args": "^5.0.2",
+    "command-line-usage": "^5.0.5",
     "js-yaml": "^3.12.0",
     "matrix-js-sdk": "^0.10.5",
     "nedb": "^1.8.0",

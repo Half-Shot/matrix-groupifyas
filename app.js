@@ -1,4 +1,3 @@
-const CommandLineArgs = require("command-line-args");
 const Matrix = require("matrix-js-sdk");
 const YAML = require("js-yaml");
 const fs = require("fs");
@@ -13,16 +12,17 @@ class GroupifyAS {
     constructor() {
         const cfg = require("./config.json");
         this.adminClient = null;
-        this.db = null;
+        this.userDb = null;
+        this.roomDb = null;
         this.asToken = null; // Appservice token
 
         this.suffix = cfg.suffix;
         this.baseUrl = cfg.baseUrl; // URL of the HS.
         this.token = cfg.adminToken; // Admin Users Token for setting groups
         this.regPath = cfg.regPath;
-        this.dataPath = cfg.dataPath;
-        this.dry = cfg.dryRun === true;
-        this.addToGroup = !(cfg.addToGroup === false);
+        this.userDataPath = cfg.users;
+        this.roomDataPath = cfg.rooms;
+        this.dry = false;
     }
 
     parseRegFile(path) {
@@ -33,31 +33,53 @@ class GroupifyAS {
             console.error(`Encountered an error when parsing ${path}`, e);
             throw Error("Registration file was not parsable");
         }
-        const regex = doc.namespaces.users[0].regex;
+        const userRegex = doc.namespaces.users[0].userRegex;
         const group_id = doc.namespaces.users[0].group_id;
         if (group_id === undefined) {
             throw Error("AS has no group_id set for users, we can't do anything with it!");
         }
         return {
             group_id,
-            regex,
+            userRegex,
             token: doc["as_token"]
         }
     }
 
     loadDatabase() {
-        this.db = new Datastore({filename: this.dataPath});
-        this.db.loadDatabase();
+        this.userDb = new Datastore({filename: this.userDataPath});
+        this.userDb.loadDatabase();
+        this.roomDb = new Datastore({filename: this.roomDataPath});
+        this.roomDb.loadDatabase();
     }
 
-    async getUsersFromAppservice(regex) {
+    async getUsersFromAppservice(userRegex) {
         return new Promise((resolve, reject) => {
-            this.db.find({id: new RegExp (regex) }, (err, docs) => {
+            this.userDb.find({id: new RegExp (userRegex) }, (err, docs) => {
                 if (err != null) {
                     reject(err);
                 } else {
                     resolve(docs);
                 }
+            });
+        });
+    }
+
+    async getPortalsFromAppservice() {
+        return new Promise((resolve, reject) => {
+            this.roomDb.find({ }, (err, docs) => {
+                if (err != null) {
+                    reject(err);
+                } else {
+                    resolve(docs);
+                }
+            });
+        }).then((rooms) => {
+            return rooms.filter((room) => {
+                return !(
+                    room.id.startsWith("ADMIN") ||
+                    room.id.startsWith("PM") || 
+                    room.data.origin === "provision" // We do !provision as old rooms exist without an alias.
+                );
             });
         });
     }
@@ -71,7 +93,8 @@ class GroupifyAS {
         return groupId;
     }
 
-    async run() {
+    async run(args) {
+        this.dry = args["dry-run"] === true;
 
         let groupMembers;
         let ircMembers;
@@ -94,13 +117,75 @@ class GroupifyAS {
         console.log(`AsBot is ${user.user_id}`);
 
         this.loadDatabase();
-        try {
-            ircMembers = await this.getUsersFromAppservice(regFile.regex);
-            console.info(`Got ${ircMembers.length} appservice users from data file.`);
-        } catch (e) {
-            throw Error(`Failed to get users from irc database: ${e.message}`);
+
+        if (args["change-suffix"] || args["add-to-group"]) {
+            try {
+                ircMembers = await this.getUsersFromAppservice(regFile.userRegex);
+                console.info(`Got ${ircMembers.length} appservice users from data file.`);
+            } catch (e) {
+                throw Error(`Failed to get users from irc database: ${e.message}`);
+            }
         }
 
+        if (args["change-suffix"]) {
+            await this.changeDisplaynames(ircMembers);
+        } else {
+            console.log("Not changing user suffixes");
+        }
+
+        if (args["add-to-group"]) {
+            await this.addToGroup(regFile, ircMembers);
+        } else {
+            console.log("Not adding users to groups");
+        }
+
+        if (args["modify-room-state"]) {
+            await this.modifyRoomGroups(regFile);
+        } else {
+            console.log("Not adding users to groups");
+            return;
+        }
+    }
+
+    async modifyRoomGroups(regFile) {
+        console.log("Modifying room sufixes");
+        const portalRooms = await this.getPortalsFromAppservice();
+        console.log(`Found ${portalRooms.length} portal rooms`);
+        await Promise.all(portalRooms.map((room, i) => {
+            const progress = `(${i}/${portalRooms.length})`;
+            return this.adminClient.getStateEvent(
+                room.matrix_id,
+                "m.room.related_groups"
+            ).catch((err) => {
+                if (err.errcode === "M_NOT_FOUND" ||
+                    err.message === "Event not found.") { // Let's be really sure.
+                    return Promise.resolve({groups: []});
+                }
+                console.error(`${progress} Couldn't get state event for ${room.matrix_id}: ${err}`);
+            }).then((content) => {
+                if (content.groups.includes(regFile.group_id)) {
+                    console.log(`${progress} ${room.matrix_id} already has the group and will be left untouched.`);
+                    return true;
+                }
+                content.groups.push(regFile.group_id);
+                return this.adminClient.sendStateEvent(
+                    room.matrix_id,
+                    "m.room.related_groups",
+                    content
+                );
+            }).catch((err) => {
+                console.error(`${progress} Couldn't set state event for ${room.matrix_id}: ${err}`);
+                return true;
+            }).then((ignored) => {
+                if (ignored === true) {
+                    return;
+                } 
+                console.log(`${progress} ${room.matrix_id} now has the group!`);
+            })
+        }));
+    }
+
+    async changeDisplaynames (ircMembers) {
         // Change displaynames
         try {
             console.info("Replacing suffixes");
@@ -120,12 +205,9 @@ class GroupifyAS {
         } catch (e) {
             throw Error(`Failed to update displaynames for appservice members: ${e.message}`);
         }
+    }
 
-        if (!this.addToGroup) {
-            console.log("Not adding users to groups");
-            return;
-        }
-        
+    async addToGroup(regFile, ircMembers) {
         try {
             console.log(`Creating group ${regFile.group_id}`);
             /*await this.adminClient.createGroup({
@@ -193,7 +275,7 @@ class GroupifyAS {
             console.log(`Changed ${userObject.id}'s displayname to ${displayname}`);
             userObject.data.displayName = displayname;
             return new Promise((resolve, reject) => {
-                this.db.update({id: userObject.id}, userObject, {}, (err, replaced) => {
+                this.userDb.update({id: userObject.id}, userObject, {}, (err, replaced) => {
                     if (err) {
                         reject(err);
                     } else {
@@ -217,9 +299,4 @@ class GroupifyAS {
     }
 }
 
-new GroupifyAS().run()
-
-.catch((e) => {
-    console.error("Script failed to complete successfully:", e);
-    process.exit(1);
-});
+module.exports = GroupifyAS;
