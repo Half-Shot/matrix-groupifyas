@@ -195,6 +195,11 @@ class GroupifyAS {
             console.info("Replacing suffixes");
             let i = 0;
             await Promise.all(ircMembers.map((user) => {
+                if (userObject.data.displayName === undefined) {
+                    console.warn(`Skipping as ${user.id} doesn't have a displayname and we are careful.`);
+                    console.log(user);
+                    return Promise.resolve();
+                }
                 const name = this.getNewDisplayName(user);
                 if (name === user.data.displayName) {
                     console.log(`Skipping as ${user.id} doesn't need updating.`);
