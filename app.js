@@ -168,6 +168,9 @@ class GroupifyAS {
                     return true;
                 }
                 content.groups.push(regFile.group_id);
+                if (this.dry === true) {
+                    return Promise.resolve();
+                }
                 return this.adminClient.sendStateEvent(
                     room.matrix_id,
                     "m.room.related_groups",
