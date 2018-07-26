@@ -15,7 +15,7 @@ class GroupifyAS {
         this.userDb = null;
         this.roomDb = null;
         this.asToken = null; // Appservice token
-        this.delayFactor = configFile.delay || DEFAULT_DELAY_FACTOR
+        this.delayFactor = 0;
 
         this.suffix = cfg.suffix;
         this.baseUrl = cfg.baseUrl; // URL of the HS.
@@ -98,6 +98,7 @@ class GroupifyAS {
 
     async run(args) {
         this.dry = args["dry-run"] === true;
+        this.delayFactor = args.delay || DEFAULT_DELAY_FACTOR;
 
         let groupMembers;
         let ircMembers;
