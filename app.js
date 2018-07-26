@@ -275,13 +275,12 @@ class GroupifyAS {
     }
 
     getNewDisplayName(userObject) {
-        return userObject.data.displayName
-                .trimEnd().replace(this.suffix, "").trimEnd();
+        return userObject.data.displayName.replace(this.suffix, "");
     }
 
     removeSuffixFromUser(userObject, displayname) {
         return this.dry ? Promise.resolve() : this.getASUserClient(userObject.id).setDisplayName(displayname).then(() => {
-            console.log(`Changed ${userObject.id}'s displayname to ${displayname}`);
+            console.log(`Changed ${userObject.id}'s displayname to ${displayname} (from ${userObject.data.displayName})`);
             userObject.data.displayName = displayname;
             return new Promise((resolve, reject) => {
                 this.userDb.update({id: userObject.id}, userObject, {}, (err, replaced) => {
