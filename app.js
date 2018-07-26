@@ -282,6 +282,9 @@ class GroupifyAS {
     removeSuffixFromUser(userObject, displayname) {
         return (this.dry ? Promise.resolve() : this.getASUserClient(userObject.id).setDisplayName(displayname)).then(() => {
             console.log(`Changed ${userObject.id}'s displayname to ${displayname} (from ${userObject.data.displayName})`);
+            if (this.dry === true) {
+                return Promise.resolve();
+            }
             userObject.data.displayName = displayname;
             return new Promise((resolve, reject) => {
                 this.userDb.update({id: userObject.id}, userObject, {}, (err, replaced) => {
