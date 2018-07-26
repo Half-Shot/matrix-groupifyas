@@ -49,7 +49,7 @@ class GroupifyAS {
     loadDatabase() {
         this.userDb = new Datastore({filename: this.userDataPath});
         this.userDb.loadDatabase();
-        this.roomDb = new Datastore({filename: this.roomDataPath});
+        this.roomDb = new Datastore({filename: this.roomDataPath, inMemoryOnly: true});
         this.roomDb.loadDatabase();
     }
 
@@ -68,7 +68,6 @@ class GroupifyAS {
     async getPortalsFromAppservice() {
         return new Promise((resolve, reject) => {
             this.roomDb.find({ }, (err, docs) => {
-                console.log(docs);
                 if (err != null) {
                     reject(err);
                 } else {
@@ -150,7 +149,7 @@ class GroupifyAS {
     }
 
     async modifyRoomGroups(regFile) {
-        console.log("Modifying room sufixes");
+        console.log("Modifying room groups...");
         const portalRooms = await this.getPortalsFromAppservice();
         console.log(`Found ${portalRooms.length} portal rooms`);
         await Promise.all(portalRooms.map((room, i) => {
