@@ -6,7 +6,7 @@ const process = require("process");
 const Datastore = require("nedb");
 const Promise = require("bluebird");
 
-const DELAY_FACTOR = 1500;
+const DEFAULT_DELAY_FACTOR = 5000;
 
 class GroupifyAS {
     constructor(configFile) {
@@ -15,6 +15,7 @@ class GroupifyAS {
         this.userDb = null;
         this.roomDb = null;
         this.asToken = null; // Appservice token
+        this.delayFactor = configFile.delay || DEFAULT_DELAY_FACTOR
 
         this.suffix = cfg.suffix;
         this.baseUrl = cfg.baseUrl; // URL of the HS.
@@ -206,7 +207,7 @@ class GroupifyAS {
                     return Promise.resolve();
                 }
 
-                return Promise.delay(i*DELAY_FACTOR).then(() => {
+                return Promise.delay(i*this.delayFactor).then(() => {
                     return this.removeSuffixFromUser(user, name);
                 });
                 i++;
@@ -244,7 +245,7 @@ class GroupifyAS {
                 return Promise.resolve();
             }
             // Delay a bit
-            return Promise.delay(i*DELAY_FACTOR).then(() => {
+            return Promise.delay(i*this.delayFactor).then(() => {
                 return this.adminClient.inviteUserToGroup(
                     regFile.group_id,
                     user.id
@@ -279,7 +280,7 @@ class GroupifyAS {
     }
 
     removeSuffixFromUser(userObject, displayname) {
-        return this.dry ? Promise.resolve() : this.getASUserClient(userObject.id).setDisplayName(displayname).then(() => {
+        return (this.dry ? Promise.resolve() : this.getASUserClient(userObject.id).setDisplayName(displayname)).then(() => {
             console.log(`Changed ${userObject.id}'s displayname to ${displayname} (from ${userObject.data.displayName})`);
             userObject.data.displayName = displayname;
             return new Promise((resolve, reject) => {

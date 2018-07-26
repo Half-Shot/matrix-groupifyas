@@ -36,6 +36,11 @@ const args = CommandLineArgs([
         default: 'config.json',
         type: String
     },
+    {
+        name: 'delay',
+        alias: 't',
+        type: Number
+    },
 ]);
 
 const hasArg = ["add-to-group", "change-suffix", "modify-room-state"].some((a) => args[a] !== undefined);
@@ -74,6 +79,11 @@ if (args["help"] || !hasArg) {
                     alias: 'c',
                     default: 'config.json',
                     description: "Config file to use."
+                },
+                {
+                    name: 'delay',
+                    alias: 'd',
+                    description: "How long to delay user/group requests."
                 },
                 {
                     name: 'help',
