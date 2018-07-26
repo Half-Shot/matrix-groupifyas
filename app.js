@@ -153,7 +153,7 @@ class GroupifyAS {
         console.log(`Found ${portalRooms.length} portal rooms`);
         await Promise.all(portalRooms.map((room, i) => {
             const progress = `(${i}/${portalRooms.length})`;
-            return this.adminClient.getStateEvent(
+            return this.bridgeClient.getStateEvent(
                 room.matrix_id,
                 "m.room.related_groups"
             ).catch((err) => {
@@ -171,7 +171,7 @@ class GroupifyAS {
                 if (this.dry === true) {
                     return Promise.resolve();
                 }
-                return this.adminClient.sendStateEvent(
+                return this.bridgeClient.sendStateEvent(
                     room.matrix_id,
                     "m.room.related_groups",
                     content
