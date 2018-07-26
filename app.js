@@ -9,8 +9,8 @@ const Promise = require("bluebird");
 const DELAY_FACTOR = 1500;
 
 class GroupifyAS {
-    constructor() {
-        const cfg = require("./config.json");
+    constructor(configFile) {
+        const cfg = require(configFile);
         this.adminClient = null;
         this.userDb = null;
         this.roomDb = null;
@@ -33,7 +33,8 @@ class GroupifyAS {
             console.error(`Encountered an error when parsing ${path}`, e);
             throw Error("Registration file was not parsable");
         }
-        const userRegex = doc.namespaces.users[0].userRegex;
+
+        const userRegex = doc.namespaces.users[0].regex;
         const group_id = doc.namespaces.users[0].group_id;
         if (group_id === undefined) {
             throw Error("AS has no group_id set for users, we can't do anything with it!");
@@ -117,7 +118,6 @@ class GroupifyAS {
         console.log(`AsBot is ${user.user_id}`);
 
         this.loadDatabase();
-
         if (args["change-suffix"] || args["add-to-group"]) {
             try {
                 ircMembers = await this.getUsersFromAppservice(regFile.userRegex);
@@ -142,7 +142,7 @@ class GroupifyAS {
         if (args["modify-room-state"]) {
             await this.modifyRoomGroups(regFile);
         } else {
-            console.log("Not adding users to groups");
+            console.log("Not modifying room state");
             return;
         }
     }

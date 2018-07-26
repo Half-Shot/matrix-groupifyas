@@ -29,7 +29,13 @@ const args = CommandLineArgs([
         name: "help",
         alias: "h",
         type: Boolean
-    }
+    },
+    {
+        name: 'config',
+        alias: 'c',
+        default: 'config.json',
+        type: String
+    },
 ]);
 
 const hasArg = ["add-to-group", "change-suffix", "modify-room-state"].some((a) => args[a] !== undefined);
@@ -64,6 +70,12 @@ if (args["help"] || !hasArg) {
                     description: "Don't send any requests, only print info."
                 },
                 {
+                    name: 'config',
+                    alias: 'c',
+                    default: 'config.json',
+                    description: "Config file to use."
+                },
+                {
                     name: 'help',
                     description: 'Print this usage guide.'
                 }
@@ -74,7 +86,7 @@ if (args["help"] || !hasArg) {
     return;
 }
 
-new GroupifyAS().run(args).catch((e) => {
+new GroupifyAS("./" + args["config"]).run(args).catch((e) => {
     console.error("Script failed to complete successfully:", e);
     process.exit(1);
 });
