@@ -6,7 +6,7 @@ const process = require("process");
 const Datastore = require("nedb");
 const Promise = require("bluebird");
 
-const DEFAULT_DELAY_FACTOR = 5000;
+const DEFAULT_DELAY_FACTOR = 250;
 
 class GroupifyAS {
     constructor(configFile) {
@@ -194,8 +194,7 @@ class GroupifyAS {
         // Change displaynames
         try {
             console.info("Replacing suffixes");
-            let i = 0;
-            await Promise.all(ircMembers.map((user) => {
+            await Promise.all(ircMembers.map((user, i) => {
                 if (user.data.displayName === undefined) {
                     console.warn(`Skipping as ${user.id} doesn't have a displayname and we are careful.`);
                     console.log(user);
@@ -210,7 +209,6 @@ class GroupifyAS {
                 return Promise.delay(i*this.delayFactor).then(() => {
                     return this.removeSuffixFromUser(user, name);
                 });
-                i++;
             }));
         } catch (e) {
             throw Error(`Failed to update displaynames for appservice members: ${e.message}`);
