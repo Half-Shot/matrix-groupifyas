@@ -75,6 +75,7 @@ class GroupifyAS {
                 }
             });
         }).then((rooms) => {
+            console.log(`Found ${rooms.length} rooms in DB`);
             return rooms.filter((room) => {
                 return !(
                     room.id.startsWith("ADMIN") ||
