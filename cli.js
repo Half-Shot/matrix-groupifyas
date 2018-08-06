@@ -82,7 +82,7 @@ if (args["help"] || !hasArg) {
                 },
                 {
                     name: 'delay',
-                    alias: 'd',
+                    alias: 't',
                     description: "How long to delay user/group requests."
                 },
                 {
