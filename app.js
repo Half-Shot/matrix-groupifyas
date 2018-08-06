@@ -195,22 +195,37 @@ class GroupifyAS {
         // Change displaynames
         try {
             console.info("Replacing suffixes");
+            let stat_no_name = 0;
+            let stat_skip = 0;
+            let stat_changed = 0;
+            let stat_failed = 0;
             await Promise.all(ircMembers.map((user, i) => {
                 if (user.data.displayName === undefined) {
                     console.warn(`Skipping as ${user.id} doesn't have a displayname and we are careful.`);
                     console.log(user);
+                    stat_no_name++;
                     return Promise.resolve();
                 }
                 const name = this.getNewDisplayName(user);
                 if (name === user.data.displayName) {
                     console.log(`Skipping as ${user.id} doesn't need updating.`);
+                    stat_skip++;
                     return Promise.resolve();
                 }
-
-                return Promise.delay(i*this.delayFactor).then(() => {
+                const delay = this.dry ? 0 : i*this.delayFactor;
+                return Promise.delay(delay).then(() => {
                     return this.removeSuffixFromUser(user, name);
+                }).then(() => {
+                   stat_changed++;
+                }).catch((err) => {
+                   console.error("Failed to update user:",err);
+                   stat_failed++;
                 });
             }));
+            console.log("Changed:", stat_changed);
+            console.log("No name set:", stat_no_name);
+            console.log("Skipped:", stat_skip);
+            console.log("Failed:", stat_failed);
         } catch (e) {
             throw Error(`Failed to update displaynames for appservice members: ${e.message}`);
         }
