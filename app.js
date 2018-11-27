@@ -63,6 +63,11 @@ class GroupifyAS {
                     resolve(docs);
                 }
             });
+        }).then((users) => {
+            console.log(`Found ${users.length} rooms in DB`);
+            return users.filter((user) => { 
+                return !user.id.includes("Guest");
+            });
         });
     }
 
@@ -156,11 +161,14 @@ class GroupifyAS {
         console.log(`Found ${portalRooms.length} portal rooms`);
         await Promise.all(portalRooms.map((room, i) => {
             const progress = `(${i}/${portalRooms.length})`;
-            return this.bridgeClient.getStateEvent(
-                room.matrix_id,
-                "m.room.related_groups"
-            ).catch((err) => {
-                if (err.errcode === "M_NOT_FOUND" ||
+	    const delay = this.dry ? 0 : i*this.delayFactor;
+            return Promise.delay(delay).then(() => {
+                return this.bridgeClient.getStateEvent(
+                    room.matrix_id,
+                    "m.room.related_groups"
+                );
+            }).catch((err) => {
+               if (err.errcode === "M_NOT_FOUND" ||
                     err.message === "Event not found.") { // Let's be really sure.
                     return Promise.resolve({groups: []});
                 }
@@ -194,26 +202,27 @@ class GroupifyAS {
     async changeDisplaynames (ircMembers) {
         // Change displaynames
         try {
-            console.info("Replacing suffixes");
+            console.info(`Replacing suffixes for ${ircMembers.length} users.`);
             let stat_no_name = 0;
             let stat_skip = 0;
             let stat_changed = 0;
             let stat_failed = 0;
-            await Promise.all(ircMembers.map((user, i) => {
+            await Promise.mapSeries(ircMembers, (user, i) => {
                 if (user.data.displayName === undefined) {
-                    console.warn(`Skipping as ${user.id} doesn't have a displayname and we are careful.`);
-                    console.log(user);
+                    //console.warn(`Skipping as ${user.id} doesn't have a displayname and we are careful.`);
+                    //console.log(user);
                     stat_no_name++;
                     return Promise.resolve();
                 }
                 const name = this.getNewDisplayName(user);
                 if (name === user.data.displayName) {
-                    console.log(`Skipping as ${user.id} doesn't need updating.`);
+                    //console.log(`Skipping as ${user.id} doesn't need updating.`);
                     stat_skip++;
                     return Promise.resolve();
                 }
-                const delay = this.dry ? 0 : i*this.delayFactor;
+                const delay = this.dry ? 0 : this.delayFactor;
                 return Promise.delay(delay).then(() => {
+                    console.log(`(${i}/${ircMembers.length}) Changing ${user.id}'s displayname) ${delay}`);
                     return this.removeSuffixFromUser(user, name);
                 }).then(() => {
                    stat_changed++;
@@ -221,7 +230,7 @@ class GroupifyAS {
                    console.error("Failed to update user:",err);
                    stat_failed++;
                 });
-            }));
+            });
             console.log("Changed:", stat_changed);
             console.log("No name set:", stat_no_name);
             console.log("Skipped:", stat_skip);
