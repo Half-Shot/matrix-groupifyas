@@ -1,9 +1,8 @@
 {
-    "baseUrl": "http://localhost:8008",
-    "adminToken": "YOUR TOKEN OR A TOKEN WITH RIGHTS TO THE GROUP",
-    "regPath": "./matrix-appservice-irc/irc_registration.yaml",
-    "dataPath": "./matrix-appservice-irc/data/users.db",
-    "suffix": "(IRC)",
-    "dryRun": false,
-    "addToGroup": true,
+  "baseUrl": "http://localhost:8008",
+  "adminToken": "deaDbeEf...",
+  "regPath": "/etc/matrix-appservice-irc/registration.yaml",
+  "users": "/var/lib/matrix-appservice-irc/db/users.db",
+  "rooms": "/var/lib/matrix-appservice-irc/db/rooms.db",
+  "suffix": " (IRC)"
 }
