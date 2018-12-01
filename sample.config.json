@@ -1,8 +1,0 @@
-{
-    "baseUrl": "http://localhost:8008",
-    "adminToken": "tokenGoesEre",
-    "regPath": "irc_registration.yaml",
-    "users": "data/users.db",
-    "rooms": "data/rooms.db",
-    "suffix": "(IRC)"
-}
